@@ -5,11 +5,6 @@ import "core:fmt"
 import rl "vendor:raylib"
 import la "core:math/linalg"
 
-Vector2 :: struct {
-    x: f32,
-    y: f32,
-}
-
 Player :: struct {
     player_health_points: int,
     speed : f32,
@@ -28,6 +23,8 @@ Player :: struct {
 
     direction: Direction,
 
+    // player body
+    hitbox : rl.Rectangle
 }
 
 Game :: struct {
@@ -52,7 +49,7 @@ Tile :: struct {
 
 }
 
-run :: proc(player: ^Player) {
+run :: proc(player: ^Player, hard_rect: ^rl.Rectangle) {
     for !rl.WindowShouldClose() {
         dt : f32 = rl.GetFrameTime()
 
@@ -78,12 +75,31 @@ run :: proc(player: ^Player) {
         player.player_pos += la.normalize0(dir) * player.speed * dt;
         player.dest.x = player.player_pos.x
         player.dest.y = player.player_pos.y
+        // // player.hitbox = player.dest
+        // player.hitbox.x = player.dest.x + 8 * 3
+        // player.hitbox.y = player.dest.y + 5 * 3
+        player.hitbox = {
+            x = player.dest.x + 24,
+            y = player.dest.y + 15,
+            width = 32.0 * 3 - 48,
+            height = 32.0 * 3 - 15,
+        }
 
         rl.BeginDrawing()
         rl.ClearBackground({160, 200, 255, 255})
         // rl.DrawRectangleRec(player, player_pos, rl.GRAY)
         // rl.DrawTextureEx(player.texture, player.player_pos, 0, 3, rl.WHITE)
         rl.DrawTexturePro(player.texture, player.source, player.dest, {0, 0}, 0, rl.WHITE)
+        rl.DrawRectangleRec(hard_rect^, rl.WHITE)
+        // rl.GetCollisionRec(player.source, hard_rect^) // this will get used for storing the result of collision
+        rl.DrawRectangleLinesEx(player.hitbox, 4, rl.RED)
+        if rl.CheckCollisionRecs(player.hitbox, hard_rect^) {
+            fmt.println("\n\n                Collided\n\n")
+        } else {
+            fmt.println("\n")
+        }
+
+
 
         rl.EndDrawing()
     }
@@ -92,6 +108,13 @@ run :: proc(player: ^Player) {
 main::proc() {
     rl.InitWindow(1280, 720, "My Odin + Raylib game")
     defer rl.CloseWindow()
+
+    collision_rectangle : rl.Rectangle = {
+        x = 600,
+        y = 250,
+        width = 100,
+        height = 100,
+    }
 
     player : Player = {
         player_health_points = 5,
@@ -113,9 +136,9 @@ main::proc() {
             y = 30.0,
             width = 32.0 * 3,
             height = 32.0 * 3,
-        }
-    };
+        },
+    }
 
-    run(&player)
+    run(&player, &collision_rectangle)
 }
 
