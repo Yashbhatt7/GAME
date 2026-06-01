@@ -24,7 +24,8 @@ Player :: struct {
     direction: Direction,
 
     // player body
-    hitbox : rl.Rectangle
+    hitbox : rl.Rectangle,
+    old_pos : [2]f32
 }
 
 Game :: struct {
@@ -51,8 +52,6 @@ Tile :: struct {
 
 run :: proc(player: ^Player, hard_rect: ^rl.Rectangle) {
     for !rl.WindowShouldClose() {
-        dt : f32 = rl.GetFrameTime()
-
         dir : [2]f32
 
         if rl.IsKeyDown(.S) {
@@ -72,18 +71,33 @@ run :: proc(player: ^Player, hard_rect: ^rl.Rectangle) {
             player.source.x = 32 * 3;
         }
 
+        fmt.println(dir.x, dir.y)
+
+        dt : f32 = rl.GetFrameTime()
+        player.old_pos = player.player_pos
         player.player_pos += la.normalize0(dir) * player.speed * dt;
-        player.dest.x = player.player_pos.x
-        player.dest.y = player.player_pos.y
+
         // // player.hitbox = player.dest
         // player.hitbox.x = player.dest.x + 8 * 3
         // player.hitbox.y = player.dest.y + 5 * 3
         player.hitbox = {
-            x = player.dest.x + 24,
-            y = player.dest.y + 15,
+            x = player.player_pos.x + 24,
+            y = player.player_pos.y + 15,
             width = 32.0 * 3 - 48,
             height = 32.0 * 3 - 15,
         }
+
+
+        if rl.CheckCollisionRecs(player.hitbox, hard_rect^) {
+            player.player_pos = player.old_pos
+
+            fmt.println("\n\n                Collided\n\n")
+        } else {
+            fmt.println("\n")
+        }
+
+        player.dest.x = player.player_pos.x
+        player.dest.y = player.player_pos.y
 
         rl.BeginDrawing()
         rl.ClearBackground({160, 200, 255, 255})
@@ -92,12 +106,7 @@ run :: proc(player: ^Player, hard_rect: ^rl.Rectangle) {
         rl.DrawTexturePro(player.texture, player.source, player.dest, {0, 0}, 0, rl.WHITE)
         rl.DrawRectangleRec(hard_rect^, rl.WHITE)
         // rl.GetCollisionRec(player.source, hard_rect^) // this will get used for storing the result of collision
-        rl.DrawRectangleLinesEx(player.hitbox, 4, rl.RED)
-        if rl.CheckCollisionRecs(player.hitbox, hard_rect^) {
-            fmt.println("\n\n                Collided\n\n")
-        } else {
-            fmt.println("\n")
-        }
+        // rl.DrawRectangleLinesEx(player.hitbox, 4, rl.RED)
 
 
 
