@@ -72,28 +72,27 @@ run :: proc(player: ^Player, hard_rect: ^rl.Rectangle) {
         }
 
         fmt.println(dir.x, dir.y)
-
         dt : f32 = rl.GetFrameTime()
+
         player.old_pos = player.player_pos
-        player.player_pos += la.normalize0(dir) * player.speed * dt;
+        norm_dir := la.normalize0(dir)
 
-        // // player.hitbox = player.dest
-        // player.hitbox.x = player.dest.x + 8 * 3
-        // player.hitbox.y = player.dest.y + 5 * 3
-        player.hitbox = {
-            x = player.player_pos.x + 24,
-            y = player.player_pos.y + 15,
-            width = 32.0 * 3 - 48,
-            height = 32.0 * 3 - 15,
-        }
-
-
+        player.player_pos.x += norm_dir.x * player.speed * dt;
+        player.hitbox.x = player.player_pos.x + 24
         if rl.CheckCollisionRecs(player.hitbox, hard_rect^) {
-            player.player_pos = player.old_pos
+            player.player_pos.x = player.old_pos.x
+            player.hitbox.x = player.old_pos.x + 24
 
             fmt.println("\n\n                Collided\n\n")
         } else {
             fmt.println("\n")
+        }
+
+        player.player_pos.y += norm_dir.y * player.speed * dt
+        player.hitbox.y = player.player_pos.y + 15
+        if rl.CheckCollisionRecs(player.hitbox, hard_rect^) {
+            player.player_pos.y = player.old_pos.y
+            player.hitbox.y = player.old_pos.y + 15
         }
 
         player.dest.x = player.player_pos.x
@@ -145,6 +144,11 @@ main::proc() {
             y = 30.0,
             width = 32.0 * 3,
             height = 32.0 * 3,
+        },
+
+        hitbox = {
+            width = 32.0 * 3 - 48,
+            height = 32.0 * 3 - 15,
         },
     }
 
