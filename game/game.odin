@@ -33,7 +33,7 @@ Game :: struct {
     level_map: Map,
 }
 
-Tiles :: enum { SPIKE, SOLID, BACKGROUND }
+Tiles :: enum { GROUND, SPIKE, SOLID, BACKGROUND }
 
 // player direction
 Direction :: enum {
@@ -50,7 +50,35 @@ Tile :: struct {
 
 }
 
-run :: proc(player: ^Player, hard_rect: ^rl.Rectangle) {
+Enemy :: struct {
+    enemy: rl.Rectangle,
+}
+
+collider_for_x :: proc(player: ^Player, hard_rects: ^[]rl.Rectangle) {
+    for i in 0..<len(hard_rects) {
+        if rl.CheckCollisionRecs(player.hitbox, hard_rects^[i]) {
+            player.player_pos.x = player.old_pos.x
+            player.hitbox.x = player.old_pos.x + 24
+            // fmt.println("\n\n                Collided\n\n")
+        } else {
+            // fmt.println("\n")
+        }
+    }
+}
+
+collider_for_y :: proc(player: ^Player, hard_rects: ^[]rl.Rectangle) {
+    for i in 0..<len(hard_rects) {
+        if rl.CheckCollisionRecs(player.hitbox, hard_rects^[i]) {
+            player.player_pos.y = player.old_pos.y
+            player.hitbox.y = player.old_pos.y + 15
+            // fmt.println("\n\n                Collided\n\n")
+        } else {
+            // fmt.println("\n")
+        }
+    }
+}
+
+run :: proc(player: ^Player, hard_rects: ^[]rl.Rectangle) {
     for !rl.WindowShouldClose() {
         dir : [2]f32
 
@@ -79,21 +107,11 @@ run :: proc(player: ^Player, hard_rect: ^rl.Rectangle) {
 
         player.player_pos.x += norm_dir.x * player.speed * dt;
         player.hitbox.x = player.player_pos.x + 24
-        if rl.CheckCollisionRecs(player.hitbox, hard_rect^) {
-            player.player_pos.x = player.old_pos.x
-            player.hitbox.x = player.old_pos.x + 24
-
-            fmt.println("\n\n                Collided\n\n")
-        } else {
-            fmt.println("\n")
-        }
+        collider_for_x(player, hard_rects)
 
         player.player_pos.y += norm_dir.y * player.speed * dt
         player.hitbox.y = player.player_pos.y + 15
-        if rl.CheckCollisionRecs(player.hitbox, hard_rect^) {
-            player.player_pos.y = player.old_pos.y
-            player.hitbox.y = player.old_pos.y + 15
-        }
+        collider_for_y(player, hard_rects)
 
         player.dest.x = player.player_pos.x
         player.dest.y = player.player_pos.y
@@ -103,7 +121,9 @@ run :: proc(player: ^Player, hard_rect: ^rl.Rectangle) {
         // rl.DrawRectangleRec(player, player_pos, rl.GRAY)
         // rl.DrawTextureEx(player.texture, player.player_pos, 0, 3, rl.WHITE)
         rl.DrawTexturePro(player.texture, player.source, player.dest, {0, 0}, 0, rl.WHITE)
-        rl.DrawRectangleRec(hard_rect^, rl.WHITE)
+        rl.DrawRectangleRec(hard_rects^[0], rl.WHITE)
+        rl.DrawRectangleRec(hard_rects^[1], rl.BLUE)
+        rl.DrawRectangleRec(hard_rects^[2], rl.GRAY)
         // rl.GetCollisionRec(player.source, hard_rect^) // this will get used for storing the result of collision
         // rl.DrawRectangleLinesEx(player.hitbox, 4, rl.RED)
 
@@ -122,6 +142,26 @@ main::proc() {
         y = 250,
         width = 100,
         height = 100,
+    }
+
+    collision_rectangle1 : rl.Rectangle = {
+        x = 650,
+        y = 280,
+        width = 100,
+        height = 100,
+    }
+
+    collision_rectangle2 : rl.Rectangle = {
+        x = 300,
+        y = 200,
+        width = 300,
+        height = 50,
+    }
+
+    arr_of_rects: []rl.Rectangle = {
+        collision_rectangle,
+        collision_rectangle1,
+        collision_rectangle2,
     }
 
     player : Player = {
@@ -152,6 +192,6 @@ main::proc() {
         },
     }
 
-    run(&player, &collision_rectangle)
+    run(&player, &arr_of_rects)
 }
 
