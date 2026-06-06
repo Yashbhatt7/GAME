@@ -5,6 +5,12 @@ import "core:fmt"
 import rl "vendor:raylib"
 import la "core:math/linalg"
 
+SmoothCam :: struct {
+    cam : rl.Camera2D,
+    smoothed_cam_pos: [2]f32,
+    smooth_cam_speed : f32,
+}
+
 Player :: struct {
     player_health_points: int,
     speed : f32,
@@ -46,8 +52,10 @@ Direction :: enum {
 Tile :: struct {
     id: int,
     solid: bool,
+    tile_pos: rl.Vector2,
     texture: rl.Texture2D,
-
+    source: rl.Rectangle,
+    dest: rl.Rectangle,
 }
 
 Enemy :: struct {
@@ -78,7 +86,7 @@ collider_for_y :: proc(player: ^Player, hard_rects: ^[]rl.Rectangle) {
     }
 }
 
-run :: proc(player: ^Player, hard_rects: ^[]rl.Rectangle) {
+run :: proc(player: ^Player, tiles: ^Tile, hard_rects: ^[]rl.Rectangle, camera: ^SmoothCam) {
     for !rl.WindowShouldClose() {
         dir : [2]f32
 
@@ -113,28 +121,40 @@ run :: proc(player: ^Player, hard_rects: ^[]rl.Rectangle) {
         player.hitbox.y = player.player_pos.y + 15
         collider_for_y(player, hard_rects)
 
+        c: f32 = camera.smooth_cam_speed * dt
+        target_pos : [2]f32 = player.player_pos
+        target_pos += {40, 50}
+        camera.cam.target += (target_pos - camera.cam.target) * c
+
         player.dest.x = player.player_pos.x
         player.dest.y = player.player_pos.y
 
         rl.BeginDrawing()
         rl.ClearBackground({160, 200, 255, 255})
+        rl.BeginMode2D(camera.cam)
+        // rl.Camera
+        // rl.CameraMoveToTarget(camera^, dt)
         // rl.DrawRectangleRec(player, player_pos, rl.GRAY)
         // rl.DrawTextureEx(player.texture, player.player_pos, 0, 3, rl.WHITE)
+        // rl.DrawTexturePro(tiles.texture, tiles.source, tiles.dest, {-1280/2, -720/2}, 0, rl.WHITE)
+        // rl.DrawTextureEx(tiles.texture, tiles.tile_pos, 0, 5, rl.WHITE)
         rl.DrawTexturePro(player.texture, player.source, player.dest, {0, 0}, 0, rl.WHITE)
-        rl.DrawRectangleRec(hard_rects^[0], rl.WHITE)
-        rl.DrawRectangleRec(hard_rects^[1], rl.BLUE)
-        rl.DrawRectangleRec(hard_rects^[2], rl.GRAY)
+        // rl.DrawRectangleRec(hard_rects^[0], rl.WHITE)
+        // rl.DrawRectangleRec(hard_rects^[1], rl.BLUE)
+        // rl.DrawRectangleRec(hard_rects^[2], rl.GRAY)
         // rl.GetCollisionRec(player.source, hard_rect^) // this will get used for storing the result of collision
         // rl.DrawRectangleLinesEx(player.hitbox, 4, rl.RED)
 
-
-
+        rl.EndMode2D()
         rl.EndDrawing()
     }
 }
 
 main::proc() {
-    rl.InitWindow(1280, 720, "My Odin + Raylib game")
+    screenWidth: i32 = 1920
+    screenHeight: i32 = 1080
+
+    rl.InitWindow(screenWidth, screenHeight, "My Odin + Raylib game")
     defer rl.CloseWindow()
 
     collision_rectangle : rl.Rectangle = {
@@ -160,8 +180,8 @@ main::proc() {
 
     arr_of_rects: []rl.Rectangle = {
         collision_rectangle,
-        collision_rectangle1,
-        collision_rectangle2,
+        // collision_rectangle1,
+        // collision_rectangle2,
     }
 
     player : Player = {
@@ -172,6 +192,7 @@ main::proc() {
 
         num_frame = 4,
         cur_frame = 0,
+        // source refers to -> from where to start drawing
         source = {
             x = 0.0,
             y = 0.0,
@@ -192,6 +213,38 @@ main::proc() {
         },
     }
 
-    run(&player, &arr_of_rects)
+    tiles : Tile = {
+        texture = rl.LoadTexture("../assets/tiles/ground.png"),
+
+        source = {
+            x = 0,
+            y = 0,
+            width = 16,
+            height = 16,
+        },
+
+        dest = {
+            x = 0,
+            y = 0,
+            width = 16 * 5,
+            height = 16 * 5,
+        },
+    }
+
+    tiles.tile_pos.x = 600
+    tiles.tile_pos.y = 300
+
+    camera : SmoothCam = {
+        smooth_cam_speed = 6.0,
+        smoothed_cam_pos = {0, 0},
+    }
+    camera.cam = {
+        offset = { cast(f32)(screenWidth / 2.0), cast(f32)(screenHeight / 2.0) },
+        // target = player.player_pos,
+        rotation = 0.0,
+        zoom = 1.3,
+    }
+
+    run(&player, &tiles, &arr_of_rects, &camera)
 }
 
